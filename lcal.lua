@@ -1,4 +1,4 @@
-#!/usr/local/bin/lua
+#!/usr/bin/env lua
 -- 祝日対応カレンダー
 
 -- 初期設定を変更するときは、スクリプトはいじらず ~/.lcal で上書きするとよさげ
@@ -87,6 +87,7 @@ holiday = {
     { name = "成人の日",	month = 1, day = 15, first = 1949, last = 1999 },
     { name = "成人の日",	month = 1, day = {2 ,1} , first = 2000 },
     { name = "建国記念の日",	month = 2, day = 11, first = 1966 },
+    { name = "天皇誕生日",	month = 2, day = 23, first = 2020 },
     { name = "春分の日",	month = 3, day = shunbun, first = 1949 },
     { name = "天皇誕生日",	month = 4, day = 29, first = 1949, last = 1988 },
     { name = "みどりの日",	month = 4, day = 29, first = 1989, last = 2006 },
@@ -95,16 +96,32 @@ holiday = {
     { name = "みどりの日",	month = 5, day = 4, first = 2007 },
     { name = "こどもの日",	month = 5, day = 5, first = 1949 },
     { name = "海の日",		month = 7, day = 20, first = 1996, last = 2002 },
-    { name = "海の日",		month = 7, day = {3, 1}, first = 2003 },
-    { name = "山の日",		month = 8, day = 11, first = 2016 },
+    { name = "海の日",		month = 7, day = {3, 1}, first = 2003, last = 2019 },
+    { name = "海の日",		month = 7, day = 23, year = 2020 },
+    { name = "海の日",		month = 7, day = 22, year = 2021 },
+    { name = "海の日",		month = 7, day = {3, 1}, first = 2022 },
+    { name = "山の日",		month = 8, day = 11, first = 2016, last = 2019 },
+    { name = "山の日",		month = 8, day = 10, year = 2020 },
+    { name = "山の日",		month = 8, day = 8, year = 2021 },
+    { name = "山の日",		month = 8, day = 11, first = 2022 },
     { name = "敬老の日",	month = 9, day = 15, first = 1966, last = 2002 },
     { name = "敬老の日",	month = 9, day = {3, 1}, first = 2003 },
     { name = "秋分の日",	month = 9, day = shuubun, first = 1948 },
     { name = "体育の日",	month = 10, day = 10, first = 1966, last = 1999 },
-    { name = "体育の日",	month = 10, day = {2, 1}, first = 2000 },
+    { name = "体育の日",	month = 10, day = {2, 1}, first = 2000, last = 2019 },
+    { name = "スポーツの日",	month = 7, day = 24, year = 2020 },
+    { name = "スポーツの日",	month = 7, day = 23, year = 2021 },
+    { name = "スポーツの日",	month = 10, day = {2, 1}, first = 2022 },
     { name = "文化の日",	month = 11, day = 3, first = 1948 },
     { name = "勤労感謝の日",	month = 11, day = 23, first = 1948 },
-    { name = "天皇誕生日",	month = 12, day = 23, first = 1989 },
+    { name = "天皇誕生日",	month = 12, day = 23, first = 1989, last = 2018 },
+    -- 1回かぎりの休日(祝日扱い)
+    { name = "皇太子明仁親王の結婚の儀",year = 1959, month = 4, day = 10 },
+    { name = "昭和天皇の大喪の礼",	year = 1989, month = 2, day = 24 },
+    { name = "即位礼正殿の儀",		year = 1990, month = 11, day = 12 },
+    { name = "皇太子徳仁親王の結婚の儀",year = 1993, month = 6, day = 9 },
+    { name = "天皇の即位の日",		year = 2019, month = 5, day = 1 },
+    { name = "即位礼正殿の儀",		year = 2019, month = 10, day = 22 },
     -- 明治の祝日: 1873/10/14-1948/7/20
     { name = "元始祭",		month = 1, day = 3, first = 1874, last = 1948 },
     { name = "新年宴會",	month = 1, day = 5, first = 1874, last = 1948 },
@@ -135,10 +152,6 @@ holiday2 = {
     { name = "即位ノ禮", year = 1928, month = 11, day = 10 },
     { name = "大嘗祭", year = 1928, month = 11, day = 14 },
     { name = "即位禮及大嘗祭後大饗第一日", year = 1928, month = 11, day = 16 },
-    { name = "皇太子明仁親王の結婚の儀", year = 1959, month = 4, day = 10 },
-    { name = "昭和天皇の大喪の礼", year = 1989, month = 2, day = 24 },
-    { name = "即位礼正殿の儀", year = 1990, month = 11, day = 12 },
-    { name = "皇太子徳仁親王の結婚の儀", year = 1993, month = 6, day = 9 },
 }
 
 --[[
