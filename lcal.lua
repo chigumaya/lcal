@@ -1,4 +1,4 @@
-#!/usr/bin/env lua
+#!/usr/local/bin/lua
 -- 祝日対応カレンダー
 
 -- 初期設定を変更するときは、スクリプトはいじらず ~/.lcal で上書きするとよさげ
@@ -298,7 +298,7 @@ end
 
 -- うるう年判定
 function is_leap_year(y)
-    return (y%400==0 or (y%4==0 and y%100~=0)) and true or false
+    return y%400==0 or (y%4==0 and y%100~=0)
 end
 
 -- 曜日判定: zeller の公式
@@ -313,6 +313,14 @@ function get_wday(y, m, d)
     local j = f((y-k)/100)
     return (d + f((m+1)*26/10) + k + f(k/4) + f(j/4) - 2*j + 6)%7
 end
+--[[
+-- 手元では以下のコードでも動いている。
+-- が、epoch以前の日付でもこれが正しく動いてしまうのは謎すぎる
+-- プラットフォームによっては動かない可能性があるので不可としたほうがよさげ
+function get_wday(y, m, d)
+    return tonumber(os.date("%w", os.time({ year=y, month=m, day=d })))
+end
+]]
 
 -- 休日判定
 function is_holiday(y, m, d)
@@ -323,6 +331,7 @@ function is_holiday(y, m, d)
     if r1 then return r1, r2 end
     r1, r2 = is_substitute_holiday(y, m, d)
     if r1 then return r1, r2 end
+    -- 日曜の判定は不要
     -- if get_wday(y, m, d) == 0 then return true end
     return false
 end
@@ -465,20 +474,14 @@ end
 -- t1 の方が t2 より後の日付であれば true, false 
 -- t1 の方が t2 より前であれば false, false
 function cmp_dates(t1, t2)
-    if t1[1] > t2[1] then
-	return true, false
-    elseif t1[1] == t2[1] then
-	if t1[2] > t2[2] then
-	    return true, false
-	elseif t1[2] == t2[2] then
-	    if t1[3] > t2[3] then
-		return true, false
-	    elseif t1[3] == t2[3] then
-		return true, true
-	    end
-	end
+    if t1[1] ~= t2[1] then
+	return t1[1] > t2[1], false
+    elseif t1[2] ~= t2[2] then
+	return t1[2] > t2[2], false
+    elseif t1[3] ~= t2[3] then
+	return t1[3] > t2[3], false
     end
-    return false, false
+    return true, true
 end
 
 -- 前後の日付を取得
@@ -510,8 +513,15 @@ function terminit()
     local p
 
     -- stdout が端末でなければエスケープシーケンスを抑制する
-    if attr_flag and (posix and not posix.ttyname(1) or os.execute"test -t 1" ~= 0) then
-	return {}
+    if not attr_flag then
+	if posix and not posix.ttyname(1) then
+   	    return {}
+	end
+	local ret, reason, status = os.execute("test -t 1")
+	if not (ret and reason == "exit" and status == 0)  -- Lua >= 5.2
+	   and not (ret == 0 and reason == nil) then       -- Lua == 5.1, LuaJIT
+	    return {}
+	end
     end
 
     if use_color == "auto" then
@@ -534,13 +544,24 @@ function terminit()
     elseif use_color == "raw" then
 	p = 3
     end
+
+    -- tput コール結果をキャッシュ (同じ属性の重複呼び出しを回避)
+    local tput_cache = {}
     if p == 1 or p == 2 then
 	for i,j in pairs(day_attr) do
 	    for _, k in ipairs(j) do
 		if term_attr[k] and term_attr[k][p] then
-		    local f = io.popen(tput.." "..term_attr[k][p].." 2>/dev/null")
-		    r[i] = (r[i] or "")..(io.type(f) == "file" and f:read() or term_attr[k][3] or "")
-		    f:close()
+		    local cache_key = tput.." "..term_attr[k][p]
+		    local seq
+		    if tput_cache[cache_key] then
+			seq = tput_cache[cache_key]
+		    else
+			local f = io.popen(cache_key.." 2>/dev/null")
+			seq = (io.type(f) == "file" and f:read()) or term_attr[k][3] or ""
+			f:close()
+			tput_cache[cache_key] = seq
+		    end
+		    r[i] = (r[i] or "")..seq
 		else
 		    r[i] = ""
 		end
@@ -559,13 +580,15 @@ function terminit()
 end
 
 -- 文字装飾
-function format_date(p, q, esc)
+-- target が string の場合: キーワード指定 (例: "sunday")
+-- target が table の場合: {年, 月, 日} で曜日/祝日に応じて自動装飾
+function format_date(day_num, target, esc)
     local s 
     esc = esc or escseq or {}
-    if type(q) == "string" then
-	s = esc[q]=="" and tostring(p) or (esc[q] or "")..tostring(p)..(esc["reset"] or "")
-    elseif type(q) == "table" then
-	local y, m, d = q[1], q[2], q[3]
+    if type(target) == "string" then
+	s = esc[target]=="" and tostring(day_num) or (esc[target] or "")..tostring(day_num)..(esc["reset"] or "")
+    elseif type(target) == "table" then
+	local y, m, d = target[1], target[2], target[3]
 	local w = get_wday(y, m, d)
 	if w == 6 then
 	    s = esc["saturday"]
@@ -583,7 +606,7 @@ function format_date(p, q, esc)
 	if y == now.year and m == now.month and d == now.day then
 	    s = (s or "")..(esc["today"] or "")
 	end
-	s = s=="" and string.format("%2d", p) or string.format("%s%2s%s", s or "", tostring(p), esc["reset"] or "")
+	s = s=="" and string.format("%2d", day_num) or string.format("%s%2s%s", s or "", tostring(day_num), esc["reset"] or "")
     end
     return s
 end
@@ -634,7 +657,6 @@ else
 end
 
 now = os.date"*t"
-escseq = terminit()
 
 wheader = format_date(wday[1], "sunday")
 for i=2,6 do
@@ -658,7 +680,7 @@ while arg[n] do
 	    elseif s == 'n' then   -- 祝日名などを表示しない
 		holiday_flag = not holiday_flag
 	    elseif s == 't' then   -- stdout がリダイレクト/パイプでも色をつける
-		attr_flag = not attr_flag
+		attr_flag = true
 	    else
 		usage("illegal option: "..s.."\n")
 	    end
@@ -668,6 +690,9 @@ while arg[n] do
     end
     n = n + 1
 end
+
+escseq = terminit()
+
 if #arg == n-1 then
     -- 年月指定なし
     display_calendar(now.year, now.month, holiday_flag)
