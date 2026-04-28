@@ -201,7 +201,7 @@ term_attr = {
 }
 
 -- ~/.lcal: 個人ごとの設定ファイルのパス
-userconf = (os.getenv"HOME" or "").."/.lcal"
+userconf = (os.getenv("HOME") or "").."/.lcal"
 
 nmonth = { 31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31 }
 
@@ -228,10 +228,10 @@ function calendar_month(y, m, flag)
 		    hol[j].month, hol[j].day, hol[j].name))
 		j = j + 1
 	    else
-		io.write'\n'
+		io.write('\n')
 	    end
 	else
-	    io.write' '
+	    io.write(' ')
 	end
     end
     if not flag then return end
@@ -261,16 +261,16 @@ function calendar_3months(y, m, flag)
 	    for l=1,7 do
 		p[j] = p[j] + 1
 		if p[j] <= 0 or p[j] > nmonth[k] then
-		    io.write'  '
+		    io.write('  ')
 		else
 		    io.write(format_date(p[j], {year[j], month[j], p[j]}))
 		end
 		if k==month[3] and l==7 then
-		    io.write'\n'
+		    io.write('\n')
 		elseif l==7 then
-		    io.write'  '
+		    io.write('  ')
 		else
-		    io.write' '
+		    io.write(' ')
 		end
 	    end
 	end
@@ -656,7 +656,7 @@ else
     end
 end
 
-now = os.date"*t"
+now = os.date("*t")
 
 wheader = format_date(wday[1], "sunday")
 for i=2,6 do
@@ -715,7 +715,7 @@ elseif #arg == n then
 	    display_calendar(now.year+1, p, holiday_flag)
 	end
     else
-	usage"invalid month or year\n"
+	usage("invalid month or year\n")
     end
 elseif #arg == n+1 then
     -- 年月どちらも指定
@@ -726,8 +726,8 @@ elseif #arg == n+1 then
     elseif q >= 1873 and p >= 1 and p <= 12 then
 	display_calendar(q, p, holiday_flag)
     else
-	usage"invalid month or year\n"
+	usage("invalid month or year\n")
     end
 else
-    usage""
+    usage("")
 end
