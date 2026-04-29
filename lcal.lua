@@ -203,15 +203,13 @@ term_attr = {
 -- ~/.lcal: 個人ごとの設定ファイルのパス
 userconf = (os.getenv("HOME") or "").."/.lcal"
 
-nmonth = { 31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31 }
-
 -- カレンダー月表示
 function calendar_month(y, m, flag)
     local w, d
     local j, hol
 
     w = get_wday(y,m,1)
-    d = nmonth[m] + (m==2 and is_leap_year(y) and 1 or 0)
+    d = days_of_month(y, m)
 
     if flag then
 	hol = list_holidays(y, m)
@@ -246,8 +244,6 @@ function calendar_3months(y, m, flag)
     local year =  { m==1 and y-1 or y,  y, m==12 and y+1 or y }
     local month = { m==1 and 12 or m-1, m, m==12 and 1 or m+1 }
     local p = {}
-    local nmonth = nmonth
-    nmonth[2] = nmonth[2] + (is_leap_year(y) and 1 or 0)
 
     io.write(string.format('      %4d/%2d         ', year[1], month[1]))
     io.write(string.format('      %4d/%2d         ', year[2], month[2]))
@@ -260,7 +256,7 @@ function calendar_3months(y, m, flag)
 	for j,k in ipairs(month) do
 	    for l=1,7 do
 		p[j] = p[j] + 1
-		if p[j] <= 0 or p[j] > nmonth[k] then
+		if p[j] <= 0 or p[j] > days_of_month(y, k) then
 		    io.write('  ')
 		else
 		    io.write(format_date(p[j], {year[j], month[j], p[j]}))
@@ -296,9 +292,13 @@ function calendar_year(y)
     calendar_3months(y, 11)
 end
 
--- うるう年判定
-function is_leap_year(y)
-    return y%400==0 or (y%4==0 and y%100~=0)
+-- その月の日数
+function days_of_month(y, m)
+    if m==2 and (y%400==0 or (y%4==0 and y%100~=0)) then
+	return 29 -- うるう年の2月
+    else
+	return ({ 31, 28 ,31, 30, 31, 30, 31, 31, 30, 31, 30, 31 })[m]
+    end
 end
 
 -- 曜日判定: zeller の公式
@@ -449,13 +449,10 @@ function list_holidays(y, m)
     local r = {}
     local r1, r2
 
-    local nmonth = nmonth
-    nmonth[2] = nmonth[2] + (is_leap_year(y) and 1 or 0)
-
     local a,b=1,12
     if m then a,b = m,m end
     for i=a,b do
-	for j=1,nmonth[i] do
+	for j=1,days_of_month(y, i) do
 	    r1, r2 = is_holiday(y, i, j)
 	    if r1 and r2 then
 		table.insert(r, { month = i, day = j, name = r2 })
@@ -490,14 +487,14 @@ function get_prev_date(y, m, d)
     if d2 == 0 then
 	y2 = m==1 and y-1 or y
 	m2 = m==1 and 12 or m-1
-	d2 = nmonth[m2] + (m2 == 2 and is_leap_year(y2) and 1 or 0)
+	d2 = days_of_month(y2, m2)
     end
     return y2, m2, d2
 end
 
 function get_next_date(y, m, d)
     local y2, m2, d2 = y, m, d+1
-    if d == nmonth[m] + (m==2 and is_leap_year(y) and 1 or 0) then
+    if d == days_of_month(y, m) then
 	y2 = m==12 and y+1 or y
 	m2 = m==12 and 1 or m+1
 	d2 = 1
