@@ -12,8 +12,8 @@ memorial_day = {
 }
 
 -- 曜日ラベル
-wday = { "Su", "Mo", "Tu", "We", "Th", "Fr", "Sa" }
--- wday = { "日", "月", "火", "水", "木", "金", "土" }
+weekday_labels = { "Su", "Mo", "Tu", "We", "Th", "Fr", "Sa" }
+-- weekday_labels = { "日", "月", "火", "水", "木", "金", "土" }
 
 -- 色をつけたりつけなかったり
 use_color = "auto"
@@ -208,7 +208,7 @@ function calendar_month(y, m, flag)
     local w, d
     local j, hol
 
-    w = get_wday(y,m,1)
+    w = get_weekday(y,m,1)
     d = days_of_month(y, m)
 
     if flag then
@@ -249,9 +249,9 @@ function calendar_3months(y, m, flag)
     io.write(string.format('      %4d/%2d         ', year[2], month[2]))
     io.write(string.format('      %4d/%2d\n', year[3], month[3]))
     io.write(wheader.."  "..wheader.."  "..wheader.."\n")
-    p[1] = -get_wday(year[1], month[1], 1)
-    p[2] = -get_wday(year[2], month[2], 1)
-    p[3] = -get_wday(year[3], month[3], 1)
+    p[1] = -get_weekday(year[1], month[1], 1)
+    p[2] = -get_weekday(year[2], month[2], 1)
+    p[3] = -get_weekday(year[3], month[3], 1)
     for i=1,6 do
 	for j,k in ipairs(month) do
 	    for l=1,7 do
@@ -303,7 +303,7 @@ end
 
 -- 曜日判定: zeller の公式
 -- lua は負数の剰余の問題がないので、変形式ではなく本来の式を使う
-function get_wday(y, m, d)
+function get_weekday(y, m, d)
     local f = math.floor
     if m <= 2 then
 	y = y-1
@@ -317,7 +317,7 @@ end
 -- 手元では以下のコードでも動いている。
 -- が、epoch以前の日付でもこれが正しく動いてしまうのは謎すぎる
 -- プラットフォームによっては動かない可能性があるので不可としたほうがよさげ
-function get_wday(y, m, d)
+function get_weekday(y, m, d)
     return tonumber(os.date("%w", os.time({ year=y, month=m, day=d })))
 end
 ]]
@@ -332,7 +332,7 @@ function is_holiday(y, m, d)
     r1, r2 = is_substitute_holiday(y, m, d)
     if r1 then return r1, r2 end
     -- 日曜の判定は不要
-    -- if get_wday(y, m, d) == 0 then return true end
+    -- if get_weekday(y, m, d) == 0 then return true end
     return false
 end
 
@@ -347,7 +347,7 @@ function lookup_holiday_table(t, y, m, d)
 	    if type(t[i].month) == "number" and t[i].month == m then
 		if type(t[i].day) == "table" then
 		    -- {2,1} を第二月曜と解釈して当月の日付を返す
-		    p = (t[i].day[1]-1)*7 + (t[i].day[2]-get_wday(y, m, 1))%7 + 1
+		    p = (t[i].day[1]-1)*7 + (t[i].day[2]-get_weekday(y, m, 1))%7 + 1
 		elseif type(t[i].day) == "function" then
 		    p = t[i].day(y)
 		else
@@ -385,22 +385,22 @@ function is_substitute_holiday(y, m, d)
     if is_national_holiday(y, m, d) then
 	return false
     end
-    if cmp_dates({y, m, d}, {furikae2.first, furikae2.month, furikae2.day}) then
+    if compare_dates({y, m, d}, {furikae2.first, furikae2.month, furikae2.day}) then
 	-- 今の振替休日
 	local y2, m2, d2 = y, m, d
 	while true do
 	    y2, m2, d2 = get_prev_date(y2, m2, d2)
 	    if is_national_holiday(y2, m2, d2) then
-		if get_wday(y2, m2, d2) == 0 then
+		if get_weekday(y2, m2, d2) == 0 then
 		    return true, furikae.name
 		end
 	    else
 		return false
 	    end
 	end
-    elseif cmp_dates({y, m, d}, {furikae.first, furikae.month, furikae.day}) then
+    elseif compare_dates({y, m, d}, {furikae.first, furikae.month, furikae.day}) then
 	-- ちょっと前の振替休日
-	if get_wday(y, m, d) == 1 and
+	if get_weekday(y, m, d) == 1 and
 	   is_national_holiday(get_prev_date(y, m, d)) then
 	    return true, furikae.name
 	else
@@ -427,16 +427,16 @@ function is_national_holiday2(y, m, d)
     if r1 then return r1, r2 end
 
     -- いちおう厳密に定義に従ってはいるけど、ぶっちゃけ結果は大差ない
-    if cmp_dates({y, m, d}, {kokumin2.first, kokumin2.month, kokumin2.day}) then
+    if compare_dates({y, m, d}, {kokumin2.first, kokumin2.month, kokumin2.day}) then
 	if is_national_holiday(get_prev_date(y, m, d)) and
 	   is_national_holiday(get_next_date(y, m, d)) and
 	   not is_national_holiday(y, m, d) then
 	    return true, kokumin.name
 	end
-    elseif cmp_dates({y, m, d}, {kokumin.first, kokumin.month, kokumin.day}) then
+    elseif compare_dates({y, m, d}, {kokumin.first, kokumin.month, kokumin.day}) then
 	if is_national_holiday(get_prev_date(y, m, d)) and
 	   is_national_holiday(get_next_date(y, m, d)) and
-	   get_wday(y, m, d) ~= 0 and
+	   get_weekday(y, m, d) ~= 0 and
 	   not is_substitute_holiday(y, m, d) then
 	    return true, kokumin.name
 	end
@@ -470,7 +470,7 @@ end
 -- t1 と t2 が同じであれば true, true を返す
 -- t1 の方が t2 より後の日付であれば true, false 
 -- t1 の方が t2 より前であれば false, false
-function cmp_dates(t1, t2)
+function compare_dates(t1, t2)
     if t1[1] ~= t2[1] then
 	return t1[1] > t2[1], false
     elseif t1[2] ~= t2[2] then
@@ -505,7 +505,7 @@ end
 -- terminfo/termcap の初期化
 -- lua で curses ライブラリを使えるようにするモジュールもあるみたいだけど
 -- まあ、そこまでおおげさにしなくてもいいかな、ってことで tput を叩く
-function terminit()
+function init_terminal_attr()
     local r = {}
     local p
 
@@ -586,7 +586,7 @@ function format_date(day_num, target, esc)
 	s = esc[target]=="" and tostring(day_num) or (esc[target] or "")..tostring(day_num)..(esc["reset"] or "")
     elseif type(target) == "table" then
 	local y, m, d = target[1], target[2], target[3]
-	local w = get_wday(y, m, d)
+	local w = get_weekday(y, m, d)
 	if w == 6 then
 	    s = esc["saturday"]
 	elseif w == 0 then
@@ -655,11 +655,11 @@ end
 
 now = os.date("*t")
 
-wheader = format_date(wday[1], "sunday")
+wheader = format_date(weekday_labels[1], "sunday")
 for i=2,6 do
-    wheader = wheader.." "..wday[i]
+    wheader = wheader.." "..weekday_labels[i]
 end
-wheader = wheader.." "..format_date(wday[7], "saturday")
+wheader = wheader.." "..format_date(weekday_labels[7], "saturday")
 
 display_calendar = calendar_month
 holiday_flag = true
@@ -688,7 +688,7 @@ while arg[n] do
     n = n + 1
 end
 
-escseq = terminit()
+escseq = init_terminal_attr()
 
 if #arg == n-1 then
     -- 年月指定なし
