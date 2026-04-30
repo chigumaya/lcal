@@ -302,6 +302,7 @@ function days_of_month(y, m)
 end
 
 -- 曜日判定: zeller の公式
+-- 返り値は0(日曜)...6(土曜)
 -- lua は負数の剰余の問題がないので、変形式ではなく本来の式を使う
 function get_weekday(y, m, d)
     local f = math.floor
@@ -314,7 +315,7 @@ function get_weekday(y, m, d)
     return (d + f((m+1)*26/10) + k + f(k/4) + f(j/4) - 2*j + 6)%7
 end
 --[[
--- 手元では以下のコードでも動いている。
+-- 手元ではos.time()を使う以下のコードでも動いている
 -- が、epoch以前の日付でもこれが正しく動いてしまうのは謎すぎる
 -- プラットフォームによっては動かない可能性があるので不可としたほうがよさげ
 function get_weekday(y, m, d)
@@ -385,7 +386,7 @@ function is_substitute_holiday(y, m, d)
     if is_national_holiday(y, m, d) then
 	return false
     end
-    if compare_dates({y, m, d}, {furikae2.first, furikae2.month, furikae2.day}) then
+    if is_date_after({y, m, d}, {furikae2.first, furikae2.month, furikae2.day})  then
 	-- 今の振替休日
 	local y2, m2, d2 = y, m, d
 	while true do
@@ -398,7 +399,7 @@ function is_substitute_holiday(y, m, d)
 		return false
 	    end
 	end
-    elseif compare_dates({y, m, d}, {furikae.first, furikae.month, furikae.day}) then
+    elseif is_date_after({y, m, d}, {furikae.first, furikae.month, furikae.day})  then
 	-- ちょっと前の振替休日
 	if get_weekday(y, m, d) == 1 and
 	   is_national_holiday(get_prev_date(y, m, d)) then
@@ -427,13 +428,13 @@ function is_national_holiday2(y, m, d)
     if r1 then return r1, r2 end
 
     -- いちおう厳密に定義に従ってはいるけど、ぶっちゃけ結果は大差ない
-    if compare_dates({y, m, d}, {kokumin2.first, kokumin2.month, kokumin2.day}) then
+    if is_date_after({y, m, d}, {kokumin2.first, kokumin2.month, kokumin2.day})   then
 	if is_national_holiday(get_prev_date(y, m, d)) and
 	   is_national_holiday(get_next_date(y, m, d)) and
 	   not is_national_holiday(y, m, d) then
 	    return true, kokumin.name
 	end
-    elseif compare_dates({y, m, d}, {kokumin.first, kokumin.month, kokumin.day}) then
+    elseif is_date_after({y, m, d}, {kokumin.first, kokumin.month, kokumin.day}) then
 	if is_national_holiday(get_prev_date(y, m, d)) and
 	   is_national_holiday(get_next_date(y, m, d)) and
 	   get_weekday(y, m, d) ~= 0 and
@@ -466,19 +467,16 @@ function list_holidays(y, m)
     return r
 end
 
--- 日付の大小を比較
--- t1 と t2 が同じであれば true, true を返す
--- t1 の方が t2 より後の日付であれば true, false 
--- t1 の方が t2 より前であれば false, false
-function compare_dates(t1, t2)
-    if t1[1] ~= t2[1] then
-	return t1[1] > t2[1], false
-    elseif t1[2] ~= t2[2] then
-	return t1[2] > t2[2], false
-    elseif t1[3] ~= t2[3] then
-	return t1[3] > t2[3], false
-    end
-    return true, true
+-- t1 が t2 より後か同じ日付かどうか
+-- t1, t2 とも {y, m, d} の形式のテーブル
+function is_date_after(t1, t2)
+   if t1[1] ~= t2[1] then
+      return t1[1] > t2[1]
+   elseif t1[2] ~= t2[2] then
+      return t1[2] > t2[2]
+   else
+      return t1[3] >= t2[3]
+   end
 end
 
 -- 前後の日付を取得
