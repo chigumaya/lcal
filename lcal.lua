@@ -292,13 +292,14 @@ function calendar_year(y)
     calendar_3months(y, 11)
 end
 
+-- うるう年判定
+function is_leap_year(y)
+    return y%400==0 or (y%4==0 and y%100~=0)
+end
 -- その月の日数
 function days_of_month(y, m)
-    if m==2 and (y%400==0 or (y%4==0 and y%100~=0)) then
-	return 29 -- うるう年の2月
-    else
-	return ({ 31, 28 ,31, 30, 31, 30, 31, 31, 30, 31, 30, 31 })[m]
-    end
+    return ({31, is_leap_year(y) and 29 or 28, 31, 30, 31, 30,
+             31, 31, 30, 31, 30, 31 })[m]
 end
 
 -- 曜日判定: zeller の公式
